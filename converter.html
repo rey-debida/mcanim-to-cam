@@ -65,7 +65,19 @@
 
         function parseKeyframes(json) {
             const keyframes = [];
-            const animation = json.animations['animation.camera.test'];
+            const animations = json.animations;
+            let animation;
+
+            // Find the first animation with a 'camera' value
+            for (const key in animations) {
+                if (animations[key].bones && animations[key].bones.camera) {
+                    animation = animations[key];
+                    break;
+                }
+            }
+            if (!animation) {
+                throw new Error('No animation with a camera found.');
+            }
             const bones = animation.bones;
 
             const boneNames = ['camera', 'cam'];
@@ -96,27 +108,27 @@
 
         function updateOutput() {
             const output = document.getElementById('output');
-const easingType = document.getElementById('easingType').value;
+            const easingType = document.getElementById('easingType').value;
 
-const lastKeyframeTimes = { pos: 0, rot: 0 };
+            const lastKeyframeTimes = { pos: 0, rot: 0 };
 
-const commands = keyframes.map((keyframe) => {
-    const [time, type, ...values] = keyframe.split(/[:\s,]+/);
-    const lastTime = lastKeyframeTimes[type] || 0;
-    let deltaTime = parseFloat(time) - parseFloat(lastTime);
+            const commands = keyframes.map((keyframe) => {
+                const [time, type, ...values] = keyframe.split(/[:\s,]+/);
+                const lastTime = lastKeyframeTimes[type] || 0;
+                let deltaTime = parseFloat(time) - parseFloat(lastTime);
 
-    if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
+                if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
 
-    lastKeyframeTimes[type] = parseFloat(time);
+                lastKeyframeTimes[type] = parseFloat(time);
 
-    if (type === 'pos') {
-        return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ~${values[0]} ~${values[1]} ~${values[2]}`;
-    } else if (type === 'rot') {
-        return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[0]} ~${values[1]}`;
-    }
-}).join('\n');
+                if (type === 'pos') {
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ~${values[0]} ~${values[1]} ~${values[2]}`;
+                } else if (type === 'rot') {
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[0]} ~${values[1]}`;
+                }
+            }).join('\n');
 
-output.textContent = commands;
+            output.textContent = commands;
 
 
         }
@@ -132,18 +144,18 @@ output.textContent = commands;
     </script>
         <style>
             body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-}
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+            }
 
-h1 {
-    margin-bottom: 30px;
+            h1 {
+                margin-bottom: 30px;
 }
 
 .container {
