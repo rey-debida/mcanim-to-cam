@@ -45,7 +45,7 @@
             <option value="out_elastic">Out Elastic</option>
             <option value="in_out_elastic">In Out Elastic</option>
         </select>
-        <button onclick="exportKeyframes()" class="disabled" disabled id="submitButton">Export Keyframes</button>
+        <button onclick="exportKeyframes()" class="disabled" disabled id="submitButton">Download Cameras</button>
     </div>
     <pre id="output"></pre>
 
@@ -80,6 +80,7 @@
             }
             if (!animation) {
                 throw new Error('No animation with a camera found.');
+                
             }
             const bones = animation.bones;
 
@@ -150,7 +151,7 @@
             const blob = new Blob([output], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'keyframes.txt';
+            link.download = 'camera_animation.txt';
             link.click();
         }
     </script>
