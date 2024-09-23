@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rey's anim 2 /cam</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Rey's Cam Converter</h1>
+    <div class="container hidden">
+        <input type="file" id="fileInput"/>
+        <select id="easingType">
+            <option value="linear">Linear</option>
+            <option value="spring">Spring</option>
+            <option value="in_quad">In Quad</option>
+            <option value="out_quad">Out Quad</option>
+            <option value="in_out_quad">In Out Quad</option>
+            <option value="in_cubic">In Cubic</option>
+            <option value="out_cubic">Out Cubic</option>
+            <option value="in_out_cubic">In Out Cubic</option>
+            <option value="in_quart">In Quart</option>
+            <option value="out_quart">Out Quart</option>
+            <option value="in_out_quart">In Out Quart</option>
+            <option value="in_quint">In Quint</option>
+            <option value="out_quint">Out Quint</option>
+            <option value="in_out_quint">In Out Quint</option>
+            <option value="in_sine">In Sine</option>
+            <option value="out_sine">Out Sine</option>
+            <option value="in_out_sine">In Out Sine</option>
+            <option value="in_expo">In Expo</option>
+            <option value="out_expo">Out Expo</option>
+            <option value="in_out_expo">In Out Expo</option>
+            <option value="in_circ">In Circ</option>
+            <option value="out_circ">Out Circ</option>
+            <option value="in_out_circ">In Out Circ</option>
+            <option value="in_bounce">In Bounce</option>
+            <option value="out_bounce">Out Bounce</option>
+            <option value="in_out_bounce">In Out Bounce</option>
+            <option value="in_back">In Back</option>
+            <option value="out_back">Out Back</option>
+            <option value="in_out_back">In Out Back</option>
+            <option value="in_elastic">In Elastic</option>
+            <option value="out_elastic">Out Elastic</option>
+            <option value="in_out_elastic">In Out Elastic</option>
+        </select>
+        <button onclick="exportKeyframes()" class="disabled" disabled id="submitButton">Export Keyframes</button>
+    </div>
+    <pre id="output"></pre>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        document.getElementById('easingType').addEventListener('change', updateOutput);
+
+        let keyframes = [];
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const json = JSON.parse(e.target.result);
+                keyframes = parseKeyframes(json);
+                updateOutput();
+            };
+            reader.readAsText(file);
+        }
+
+        function parseKeyframes(json) {
+            const keyframes = [];
+            const animations = json.animations;
+            let animation;
+
+            // Find the first animation with a 'camera' value
+            for (const key in animations) {
+                if (animations[key].bones && animations[key].bones.camera) {
+                    animation = animations[key];
+                    break;
+                }
+            }
+            if (!animation) {
+                throw new Error('No animation with a camera found.');
+            }
+            const bones = animation.bones;
+
+            const boneNames = ['camera', 'cam'];
+            boneNames.forEach(boneName => {
+                if (bones[boneName]) {
+                    const bone = bones[boneName];
+                    const positionKeys = Object.keys(bone.position).sort((a, b) => parseFloat(a) - parseFloat(b));
+                    const rotationKeys = Object.keys(bone.rotation).sort((a, b) => parseFloat(a) - parseFloat(b));
+
+                    const maxLength = Math.max(positionKeys.length, rotationKeys.length);
+                    for (let i = 0; i < maxLength; i++) {
+                        if (i < positionKeys.length) {
+                            const time = positionKeys[i];
+                            const pos = bone.position[time];
+                            keyframes.push(`${time}: pos: ${pos[0]}, ${pos[1]}, ${pos[2]}`);
+                        }
+                        if (i < rotationKeys.length) {
+                            const time = rotationKeys[i];
+                            const rot = bone.rotation[time];
+                            keyframes.push(`${time}: rot: ${rot[0]}, ${rot[1]}`);
+                        }
+                    }
+                }
+            });
+
+            return keyframes;
+        }
+
+        function updateOutput() {
+            const output = document.getElementById('output');
+            const easingType = document.getElementById('easingType').value;
+
+            const lastKeyframeTimes = { pos: 0, rot: 0 };
+
+            const commands = keyframes.map((keyframe) => {
+                const [time, type, ...values] = keyframe.split(/[:\s,]+/);
+                const lastTime = lastKeyframeTimes[type] || 0;
+                let deltaTime = parseFloat(time) - parseFloat(lastTime);
+
+                if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
+
+                lastKeyframeTimes[type] = parseFloat(time);
+
+                if (type === 'pos') {
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ~${values[0]} ~${values[1]} ~${values[2]}`;
+                } else if (type === 'rot') {
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[0]} ~${values[1]}` + '\n';
+                }
+            }).join('\n');
+
+            output.textContent = commands;
+
+
+        }
+
+        function exportKeyframes() {
+            const output = document.getElementById('output').textContent;
+            const blob = new Blob([output], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'keyframes.txt';
+            link.click();
+        }
+    </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+            document.querySelector(".container").classList.remove("hidden");
+        });
+        const fileInput = document.getElementById('fileInput');
+        const submitButton = document.getElementById('submitButton');
+
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('disabled');
+            } else {
+                submitButton.disabled = true;
+                submitButton.classList.add('disabled');
+            }
+        });
+        </script>
+        <style>
+        button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        button.disabled {
+            background-color: grey;
+            color: white;
+            cursor: not-allowed;
+        }
+        </style>
+</body>
+</html>
