@@ -114,24 +114,33 @@
             const easingType = document.getElementById('easingType').value;
 
             const lastKeyframeTimes = { pos: 0, rot: 0 };
+            const initialCommands = [
+                //js making sure the player is aligned to fix any camera issues
+                '/execute as @s positioned ~ ~-1 ~ run tp @s ~ ~1 ~ facing ^ ^ ^',
+                '/tp @s ~ ~ ~ facing ^ ^0.5 ^'
+            ].join('\n');
 
             const commands = keyframes.map((keyframe) => {
-                const [time, type, ...values] = keyframe.split(/[:\s,]+/);
-                const lastTime = lastKeyframeTimes[type] || 0;
-                let deltaTime = parseFloat(time) - parseFloat(lastTime);
+            const [time, type, ...values] = keyframe.split(/[:\s,]+/);
+            const lastTime = lastKeyframeTimes[type] || 0;
+            let deltaTime = parseFloat(time) - parseFloat(lastTime);
 
-                if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
+            if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
 
                 lastKeyframeTimes[type] = parseFloat(time);
 
                 if (type === 'pos') {
-                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ~${values[0]} ~${values[1]} ~${values[2]}`;
+                    //add 1 to get center of players body
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ^${values[0]} ^${values[1] + 1} ^${values[2]}`;
                 } else if (type === 'rot') {
-                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[0]} ~${values[1]}` + '\n';
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[1]} ~${values[0]}\n`;
                 }
             }).join('\n');
 
-            output.textContent = commands;
+            const finalCommands = `${initialCommands}\n${commands}`;
+
+
+            output.textContent = finalCommands;
 
 
         }
