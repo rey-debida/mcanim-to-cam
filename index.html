@@ -10,7 +10,7 @@
 <body>
     <h1>Rey's Cam Converter</h1>
     <div class="container hidden">
-        <input type="file" id="fileInput" />
+        <input type="file" id="fileInput"/>
         <select id="easingType">
             <option value="linear">Linear</option>
             <option value="spring">Spring</option>
@@ -45,7 +45,7 @@
             <option value="out_elastic">Out Elastic</option>
             <option value="in_out_elastic">In Out Elastic</option>
         </select>
-        <button onclick="exportKeyframes()">Export Keyframes</button>
+        <button onclick="exportKeyframes()" class="disabled" disabled id="submitButton">Export Keyframes</button>
     </div>
     <pre id="output"></pre>
 
@@ -149,6 +149,28 @@
             document.addEventListener("DOMContentLoaded", function() {
             document.querySelector(".container").classList.remove("hidden");
         });
+        const fileInput = document.getElementById('fileInput');
+        const submitButton = document.getElementById('submitButton');
+
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('disabled');
+            } else {
+                submitButton.disabled = true;
+                submitButton.classList.add('disabled');
+            }
+        });
         </script>
+        <style>
+        button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        button.disabled {
+            background-color: grey;
+            color: white;
+            cursor: not-allowed;
+        }
+        </style>
 </body>
 </html>
