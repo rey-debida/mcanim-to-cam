@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ReyCam JS Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>ReyCam JS Pro</h1>
+    <p>converts your files into Cameras for easy cutscenes :3</p>
+    <div class="version-number">Version 1.0.0</div>
+    <div class="container hidden">
+        <input type="file" id="fileInput"/>
+        <select id="easingType">
+            <option value="linear">Linear</option>
+            <option value="spring">Spring</option>
+            <option value="in_quad">In Quad</option>
+            <option value="out_quad">Out Quad</option>
+            <option value="in_out_quad">In Out Quad</option>
+            <option value="in_cubic">In Cubic</option>
+            <option value="out_cubic">Out Cubic</option>
+            <option value="in_out_cubic">In Out Cubic</option>
+            <option value="in_quart">In Quart</option>
+            <option value="out_quart">Out Quart</option>
+            <option value="in_out_quart">In Out Quart</option>
+            <option value="in_quint">In Quint</option>
+            <option value="out_quint">Out Quint</option>
+            <option value="in_out_quint">In Out Quint</option>
+            <option value="in_sine">In Sine</option>
+            <option value="out_sine">Out Sine</option>
+            <option value="in_out_sine">In Out Sine</option>
+            <option value="in_expo">In Expo</option>
+            <option value="out_expo">Out Expo</option>
+            <option value="in_out_expo">In Out Expo</option>
+            <option value="in_circ">In Circ</option>
+            <option value="out_circ">Out Circ</option>
+            <option value="in_out_circ">In Out Circ</option>
+            <option value="in_bounce">In Bounce</option>
+            <option value="out_bounce">Out Bounce</option>
+            <option value="in_out_bounce">In Out Bounce</option>
+            <option value="in_back">In Back</option>
+            <option value="out_back">Out Back</option>
+            <option value="in_out_back">In Out Back</option>
+            <option value="in_elastic">In Elastic</option>
+            <option value="out_elastic">Out Elastic</option>
+            <option value="in_out_elastic">In Out Elastic</option>
+        </select>
+        <button onclick="exportKeyframes()" class="disabled" disabled id="submitButton">Download Raw Cameras</button>
+        <button onclick="generateCode()" class="disabled" disabled id="submitButton2">Download JavaScript (ScriptAPI)</button>
+    </div>
+    <pre id="output" hidden></pre>
+    <pre id="output2" hidden></pre>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        document.getElementById('easingType').addEventListener('change', updateOutput);
+
+        let keyframes = [];
+        let filename = ''
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            const fn = file.name
+            const fr = fn.replace(/_/g, ' ').replace(/\.json$/, '');
+            filename = fr
+            reader.onload = function(e) {
+                const json = JSON.parse(e.target.result);
+                keyframes = parseKeyframes(json);
+                updateOutput();
+            };
+            reader.readAsText(file);
+        }
+
+        function parseKeyframes(json) {
+            const keyframes = [];
+            const animations = json.animations;
+            let animation;
+
+            // Find the first animation with a 'camera' value
+            for (const key in animations) {
+                if (animations[key].bones && animations[key].bones.camera) {
+                    animation = animations[key];
+                    break;
+                }
+            }
+            if (!animation) {
+                throw new Error('No animation with a camera found.');
+                
+            }
+            const bones = animation.bones;
+
+            const boneNames = ['camera', 'cam'];
+            boneNames.forEach(boneName => {
+                if (bones[boneName]) {
+                    const bone = bones[boneName];
+                    const positionKeys = Object.keys(bone.position).sort((a, b) => parseFloat(a) - parseFloat(b));
+                    const rotationKeys = Object.keys(bone.rotation).sort((a, b) => parseFloat(a) - parseFloat(b));
+
+                    const maxLength = Math.max(positionKeys.length, rotationKeys.length);
+                    for (let i = 0; i < maxLength; i++) {
+                        if (i < positionKeys.length) {
+                            const time = positionKeys[i];
+                            const pos = bone.position[time];
+                            keyframes.push(`${time}: pos: ${pos[0]}, ${pos[1]}, ${pos[2]}`);
+                        }
+                        if (i < rotationKeys.length) {
+                            const time = rotationKeys[i];
+                            const rot = bone.rotation[time];
+                            keyframes.push(`${time}: rot: ${rot[0]}, ${rot[1]}`);
+                        }
+                    }
+                }
+            });
+
+            return keyframes;
+        }
+        let listPos = []
+        let listRot = []
+        let listPosCmds = []
+        let listRotCmds = []
+        function updateOutput() {
+            const output = document.getElementById('output');
+            const easingType = document.getElementById('easingType').value;
+
+            const lastKeyframeTimes = { pos: 0, rot: 0 };
+            const initialCommands = [
+                //js making sure the player is aligned to fix any camera issues
+                '/execute as @s positioned ~ ~-1 ~ run tp @s ~ ~1 ~ facing ^ ^ ^',
+                '/tp @s ~ ~ ~ facing ^ ^0.5 ^'
+            ].join('\n');
+
+            const commands = keyframes.map((keyframe) => {
+            const [time, type, ...values] = keyframe.split(/[:\s,]+/);
+            const lastTime = lastKeyframeTimes[type] || 0;
+            let deltaTime = parseFloat(time) - parseFloat(lastTime);
+
+            if (deltaTime < 0.005 && deltaTime !== 0) deltaTime = 1;
+
+                lastKeyframeTimes[type] = parseFloat(time);
+
+                if (type === 'pos') {
+                    listPos.push(deltaTime * 20)
+                    listPosCmds.push(`entity.runCommandAsync(\`/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ^${values[0]} ^${values[1] + 1} ^${values[2]}\`)`)
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} pos ^${values[0]} ^${values[1] + 1} ^${values[2]}`;
+                } else if (type === 'rot') {
+                    listRot.push(deltaTime * 20)
+                    listRotCmds.push(`entity.runCommandAsync(\`/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[1]} ~${values[0]}\`)`)
+                    return `/camera @s set minecraft:free ease ${deltaTime} ${easingType} rot ~${values[1]} ~${values[0]}\n`;
+                }
+            }).join('\n');
+
+            const finalCommands = `${initialCommands}\n${commands}`;
+            output.textContent = finalCommands;
+
+
+        }
+
+        function exportKeyframes() {
+            const output = document.getElementById('output').textContent;
+            const blob = new Blob([output], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename + '_rawcam.txt';
+            link.click();
+        }
+        //some more skibidi data :3
+        //auto generates JavaScript code :33
+        function generateCode() {
+            const keyDelta =  listPos
+            const keyDelta2 = listRot
+            let code = '';
+            let indent = '';
+
+            for (let i = 0; i < keyDelta.length; i++) {
+                code += `${indent}system.runTimeout(() => {\n`;
+                indent += '    ';
+            }
+            for (let i = keyDelta.length - 1; i >= 0; i--) {
+                indent = indent.slice(0, -2);
+                code += `${indent} ${listPosCmds[i]}\n`;
+                indent = indent.slice(0, -2);
+                code += `${indent}}, ${keyDelta[i]});\n`;
+            }
+
+            let code2 = '//entity from entity.runCommandAsync should equal your data.entity! (NEEDED)\nentity.runCommandAsync(`/execute as @s positioned ~ ~-1 ~ run tp @s ~ ~1 ~ facing ^ ^ ^`)\nentity.runCommandAsync(`/tp @s ~ ~ ~ facing ^ ^0.5 ^`)\n';
+            indent = '';
+
+            for (let i = 0; i < keyDelta2.length; i++) {
+                code2 += `${indent}system.runTimeout(() => {\n`;
+                indent += '    ';
+            }
+
+            for (let i = keyDelta2.length - 1; i >= 0; i--) {
+                indent = indent.slice(0, -2);
+                code2 += `${indent} ${listRotCmds[i]}\n`;
+                indent = indent.slice(0, -2);
+                code2 += `${indent}}, ${keyDelta2[i]});\n`;
+            }
+            code2 += `\n${code}`
+
+            document.getElementById('output2').textContent = code2;
+            downloadCode()
+        }
+        function downloadCode() {
+            const code = document.getElementById('output2').textContent;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename + '_javascript.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+            document.querySelector(".container").classList.remove("hidden");
+        });
+        const fileInput = document.getElementById('fileInput');
+        const submitButton = document.getElementById('submitButton');
+
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('disabled');
+                submitButton2.disabled = false;
+                submitButton2.classList.remove('disabled');
+            } else {
+                submitButton.disabled = true;
+                submitButton.classList.add('disabled');
+                submitButton2.disabled = true;
+                submitButton2.classList.add('disabled');
+            }
+        });
+        </script>
+        <style>
+        button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+            user-select: none; /* Make text non-selectable */
+        }
+        button.disabled {
+            background-color: grey;
+            color: white;
+            cursor: not-allowed;
+            user-select: none; /* Make text non-selectable */
+        }
+        </style>
+</body>
+</html>
