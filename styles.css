@@ -91,7 +91,7 @@ button {
 button:hover {
     background-color: #0056b3;
 }
-.version-number {
+.vm {
     position: fixed;
     bottom: 10px;
     left: 10px;
