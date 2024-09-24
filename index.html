@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    <div class="vm">Version 1.0.0</div>
 <head>
     <meta charset="UTF-8">
     <title>ReyCam JS Pro</title>
@@ -10,7 +11,6 @@
 <body>
     <h1>ReyCam JS Pro</h1>
     <p>converts your files into Cameras for easy cutscenes :3</p>
-    <div class="version-number">Version 1.0.0</div>
     <div class="container hidden">
         <input type="file" id="fileInput"/>
         <select id="easingType">
@@ -58,13 +58,9 @@
         document.getElementById('easingType').addEventListener('change', updateOutput);
 
         let keyframes = [];
-        let filename = ''
         function handleFileUpload(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
-            const fn = file.name
-            const fr = fn.replace(/_/g, ' ').replace(/\.json$/, '');
-            filename = fr
             reader.onload = function(e) {
                 const json = JSON.parse(e.target.result);
                 keyframes = parseKeyframes(json);
@@ -152,9 +148,8 @@
             }).join('\n');
 
             const finalCommands = `${initialCommands}\n${commands}`;
+
             output.textContent = finalCommands;
-
-
         }
 
         function exportKeyframes() {
@@ -162,11 +157,10 @@
             const blob = new Blob([output], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = filename + '_rawcam.txt';
+            link.download = 'rawcam.txt';
             link.click();
         }
-        //some more skibidi data :3
-        //auto generates JavaScript code :33
+        
         function generateCode() {
             const keyDelta =  listPos
             const keyDelta2 = listRot
@@ -209,7 +203,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename + '_javascript.js';
+            a.download = 'javascript.js';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
